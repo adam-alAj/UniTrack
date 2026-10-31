@@ -17,27 +17,34 @@ function decodeEntities(value: string): string {
     "#39": "'",
   };
 
-  return value.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity, token: string) => {
-    if (token.startsWith("#x")) {
-      const point = Number.parseInt(token.slice(2), 16);
-      return Number.isSafeInteger(point) && point > 0 && point <= 0x10ffff
-        ? String.fromCodePoint(point)
-        : entity;
-    }
-    if (token.startsWith("#")) {
-      const point = Number.parseInt(token.slice(1), 10);
-      return Number.isSafeInteger(point) && point > 0 && point <= 0x10ffff
-        ? String.fromCodePoint(point)
-        : entity;
-    }
-    return named[token.toLowerCase()] ?? entity;
-  });
+  return value.replace(
+    /&(#x[\da-f]+|#\d+|[a-z]+);/gi,
+    (entity, token: string) => {
+      if (token.startsWith("#x")) {
+        const point = Number.parseInt(token.slice(2), 16);
+        return Number.isSafeInteger(point) && point > 0 && point <= 0x10ffff
+          ? String.fromCodePoint(point)
+          : entity;
+      }
+      if (token.startsWith("#")) {
+        const point = Number.parseInt(token.slice(1), 10);
+        return Number.isSafeInteger(point) && point > 0 && point <= 0x10ffff
+          ? String.fromCodePoint(point)
+          : entity;
+      }
+      return named[token.toLowerCase()] ?? entity;
+    },
+  );
 }
 
 function safeHttpUrl(value: string): string | null {
   try {
     const url = new URL(value);
-    if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) {
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      url.username ||
+      url.password
+    ) {
       return null;
     }
     return url.toString();
@@ -49,13 +56,19 @@ function safeHttpUrl(value: string): string | null {
 function plainText(fragment: string): string {
   return decodeEntities(
     fragment
-      .replace(/<(script|style|head|svg|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, " ")
+      .replace(
+        /<(script|style|head|svg|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
+        " ",
+      )
       .replace(/<(?:br|\/p|\/div|\/li|\/tr|\/h[1-6])\b[^>]*>/gi, "\n")
       .replace(/<[^>]*>/g, " "),
   );
 }
 
-export function normalizeEmail(input: { subject: string; body: string }): NormalizedEmail {
+export function normalizeEmail(input: {
+  subject: string;
+  body: string;
+}): NormalizedEmail {
   const links: EmailLink[] = [];
   const bodyWithAnchors = input.body.replace(
     /<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a\s*>/gi,

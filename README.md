@@ -21,14 +21,14 @@ The login screen reports when public Supabase configuration is missing. Authenti
 
 ## Environment variables
 
-| Variable | Use | Exposure |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Browser safe |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/publishable key; authorization is enforced by RLS | Browser safe |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only ingestion repository | Server only; never use in browser code |
-| `UNITRACK_INGEST_SECRET` | Shared bearer secret for Apps Script ingestion | Server only; never commit it |
-| `UNITRACK_OWNER_USER_ID` | Supabase auth user UUID that owns ingested records | Server only |
-| `UNITRACK_SOURCE_TIMEZONE` | IANA timezone used to convert explicitly stated local deadlines | Server only; configure before interpreting timed deadlines |
+| Variable                        | Use                                                             | Exposure                                                   |
+| ------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                                            | Browser safe                                               |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/publishable key; authorization is enforced by RLS | Browser safe                                               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server-only ingestion repository                                | Server only; never use in browser code                     |
+| `UNITRACK_INGEST_SECRET`        | Shared bearer secret for Apps Script ingestion                  | Server only; never commit it                               |
+| `UNITRACK_OWNER_USER_ID`        | Supabase auth user UUID that owns ingested records              | Server only                                                |
+| `UNITRACK_SOURCE_TIMEZONE`      | IANA timezone used to convert explicitly stated local deadlines | Server only; configure before interpreting timed deadlines |
 
 Never place a service-role key or ingestion secret in a `NEXT_PUBLIC_*` variable. Apps Script secrets belong in Script Properties, not this repository.
 

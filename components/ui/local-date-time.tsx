@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-export function LocalDateTime({ value, fallback = "Time unavailable" }: { value: string | null; fallback?: string }) {
-  const [display, setDisplay] = useState(fallback);
+function subscribeToNothing() {
+  return () => {};
+}
 
-  useEffect(() => {
-    if (!value) {
-      setDisplay(fallback);
-      return;
-    }
-    setDisplay(new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)));
-  }, [value, fallback]);
+export function LocalDateTime({
+  value,
+  fallback = "Time unavailable",
+}: {
+  value: string | null;
+  fallback?: string;
+}) {
+  const display = useSyncExternalStore(
+    subscribeToNothing,
+    () =>
+      value
+        ? new Intl.DateTimeFormat(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(new Date(value))
+        : fallback,
+    () => fallback,
+  );
 
   return <time dateTime={value ?? undefined}>{display}</time>;
 }

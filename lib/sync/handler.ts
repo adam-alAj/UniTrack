@@ -12,7 +12,10 @@ export type SyncRunDependencies = {
 };
 
 function json(body: Record<string, unknown>, status: number) {
-  return Response.json(body, { status, headers: { "cache-control": "no-store" } });
+  return Response.json(body, {
+    status,
+    headers: { "cache-control": "no-store" },
+  });
 }
 
 function matchesSecret(expected: string, provided: string) {
@@ -47,17 +50,32 @@ async function readBody(request: Request) {
   return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 }
 
-export async function handleSyncRunRequest(request: Request, dependencies: SyncRunDependencies) {
-  if (request.method !== "POST") return json({ success: false, error: "method_not_allowed" }, 405);
-  if (!dependencies.expectedSecret || !dependencies.ownerUserId) return json({ success: false, error: "server_not_configured" }, 503);
-  if (!/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(dependencies.ownerUserId)) {
+export async function handleSyncRunRequest(
+  request: Request,
+  dependencies: SyncRunDependencies,
+) {
+  if (request.method !== "POST")
+    return json({ success: false, error: "method_not_allowed" }, 405);
+  if (!dependencies.expectedSecret || !dependencies.ownerUserId)
+    return json({ success: false, error: "server_not_configured" }, 503);
+  if (
+    !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
+      dependencies.ownerUserId,
+    )
+  ) {
     return json({ success: false, error: "server_not_configured" }, 503);
   }
 
   const authorization = request.headers.get("authorization") ?? "";
   const token = authorization.match(/^Bearer\s+([^\s]+)$/i)?.[1];
-  if (!token || !matchesSecret(dependencies.expectedSecret, token)) return json({ success: false, error: "unauthorized" }, 401);
-  if ((request.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase() !== "application/json") {
+  if (!token || !matchesSecret(dependencies.expectedSecret, token))
+    return json({ success: false, error: "unauthorized" }, 401);
+  if (
+    (request.headers.get("content-type") ?? "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase() !== "application/json"
+  ) {
     return json({ success: false, error: "unsupported_content_type" }, 415);
   }
 
@@ -67,7 +85,8 @@ export async function handleSyncRunRequest(request: Request, dependencies: SyncR
   } catch {
     return json({ success: false, error: "invalid_body" }, 400);
   }
-  if (body === null) return json({ success: false, error: "payload_too_large" }, 413);
+  if (body === null)
+    return json({ success: false, error: "payload_too_large" }, 413);
 
   let value: unknown;
   try {
@@ -76,7 +95,8 @@ export async function handleSyncRunRequest(request: Request, dependencies: SyncR
     return json({ success: false, error: "invalid_json" }, 400);
   }
   const parsed = SyncRunSchema.safeParse(value);
-  if (!parsed.success) return json({ success: false, error: "invalid_payload" }, 400);
+  if (!parsed.success)
+    return json({ success: false, error: "invalid_payload" }, 400);
 
   try {
     await dependencies.recordRun(dependencies.ownerUserId, parsed.data);

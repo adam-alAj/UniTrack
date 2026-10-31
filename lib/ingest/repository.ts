@@ -48,7 +48,12 @@ export function createIngestionRepository(): IngestionRepository {
         p_announcement: input.announcement,
       });
 
-      if (error || (data !== "processed" && data !== "needs_review" && data !== "duplicate")) {
+      if (
+        error ||
+        (data !== "processed" &&
+          data !== "needs_review" &&
+          data !== "duplicate")
+      ) {
         throw new Error("Atomic email persistence failed.");
       }
       return data;

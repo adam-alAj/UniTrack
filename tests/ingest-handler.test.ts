@@ -46,7 +46,11 @@ function fakeRepository(overrides: Partial<IngestionRepository> = {}) {
 
 function request(
   body: unknown,
-  options: { method?: string; authorization?: string; contentType?: string } = {},
+  options: {
+    method?: string;
+    authorization?: string;
+    contentType?: string;
+  } = {},
 ) {
   return new Request("https://unitrack.example/api/ingest/email", {
     method: options.method ?? "POST",
@@ -58,7 +62,10 @@ function request(
   });
 }
 
-function dependencies(repository: IngestionRepository, logError = () => {}) {
+function dependencies(
+  repository: IngestionRepository,
+  logError: (stage: string) => void = () => {},
+) {
   return {
     expectedSecret: SECRET,
     ownerUserId: OWNER_ID,
@@ -69,9 +76,18 @@ function dependencies(repository: IngestionRepository, logError = () => {}) {
 
 test("rejects missing/invalid bearer secrets and non-POST requests", async () => {
   const { repository } = fakeRepository();
-  const missing = await handleIngestRequest(request(validPayload(), { authorization: "" }), dependencies(repository));
-  const invalid = await handleIngestRequest(request(validPayload(), { authorization: "Bearer wrong" }), dependencies(repository));
-  const method = await handleIngestRequest(request(validPayload(), { method: "PUT" }), dependencies(repository));
+  const missing = await handleIngestRequest(
+    request(validPayload(), { authorization: "" }),
+    dependencies(repository),
+  );
+  const invalid = await handleIngestRequest(
+    request(validPayload(), { authorization: "Bearer wrong" }),
+    dependencies(repository),
+  );
+  const method = await handleIngestRequest(
+    request(validPayload(), { method: "PUT" }),
+    dependencies(repository),
+  );
 
   assert.equal(missing.status, 401);
   assert.equal(invalid.status, 401);
@@ -85,10 +101,16 @@ test("rejects wrong content type, malformed payloads, and caller-supplied owners
     dependencies(repository),
   );
   const withUserId = await handleIngestRequest(
-    request({ ...validPayload(), user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }),
+    request({
+      ...validPayload(),
+      user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    }),
     dependencies(repository),
   );
-  const malformed = await handleIngestRequest(request("{"), dependencies(repository));
+  const malformed = await handleIngestRequest(
+    request("{"),
+    dependencies(repository),
+  );
 
   assert.equal(wrongType.status, 415);
   assert.equal(withUserId.status, 400);
@@ -98,7 +120,10 @@ test("rejects wrong content type, malformed payloads, and caller-supplied owners
 
 test("persists a validated unknown-or-review email and returns the worker contract", async () => {
   const { repository, calls } = fakeRepository();
-  const response = await handleIngestRequest(request(validPayload()), dependencies(repository));
+  const response = await handleIngestRequest(
+    request(validPayload()),
+    dependencies(repository),
+  );
   const body = await response.json();
 
   assert.equal(response.status, 200);
@@ -113,8 +138,13 @@ test("persists a validated unknown-or-review email and returns the worker contra
 });
 
 test("returns duplicate without a second write", async () => {
-  const { repository, calls } = fakeRepository({ isDuplicate: async () => true });
-  const response = await handleIngestRequest(request(validPayload()), dependencies(repository));
+  const { repository, calls } = fakeRepository({
+    isDuplicate: async () => true,
+  });
+  const response = await handleIngestRequest(
+    request(validPayload()),
+    dependencies(repository),
+  );
   const body = await response.json();
 
   assert.equal(body.status, "duplicate");
@@ -129,7 +159,10 @@ test("turns repository failures into retryable responses and only logs a stage",
       throw new Error("must not be returned or logged");
     },
   });
-  const response = await handleIngestRequest(request(validPayload()), dependencies(repository, (stage) => stages.push(stage)));
+  const response = await handleIngestRequest(
+    request(validPayload()),
+    dependencies(repository, (stage) => stages.push(stage)),
+  );
   const body = await response.json();
 
   assert.equal(response.status, 503);

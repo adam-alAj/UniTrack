@@ -25,8 +25,14 @@ function makeRequest(value: unknown, authorization = `Bearer ${secret}`) {
 
 test("sync run endpoint rejects bad bearer secrets and caller ownership", async () => {
   const recordRun = async () => {};
-  const invalidSecret = await handleSyncRunRequest(makeRequest(syncRun, "Bearer wrong"), { expectedSecret: secret, ownerUserId: ownerId, recordRun });
-  const forgedOwner = await handleSyncRunRequest(makeRequest({ ...syncRun, user_id: ownerId }), { expectedSecret: secret, ownerUserId: ownerId, recordRun });
+  const invalidSecret = await handleSyncRunRequest(
+    makeRequest(syncRun, "Bearer wrong"),
+    { expectedSecret: secret, ownerUserId: ownerId, recordRun },
+  );
+  const forgedOwner = await handleSyncRunRequest(
+    makeRequest({ ...syncRun, user_id: ownerId }),
+    { expectedSecret: secret, ownerUserId: ownerId, recordRun },
+  );
   assert.equal(invalidSecret.status, 401);
   assert.equal(forgedOwner.status, 400);
 });
@@ -48,9 +54,19 @@ test("sync run is stored against server-configured owner with validated counts",
 });
 
 test("sync run requires a valid time interval and integer counters", async () => {
-  const dependencies = { expectedSecret: secret, ownerUserId: ownerId, recordRun: async () => {} };
-  const invalidInterval = await handleSyncRunRequest(makeRequest({ ...syncRun, finished_at: "2026-10-31T09:59:00.000Z" }), dependencies);
-  const invalidCount = await handleSyncRunRequest(makeRequest({ ...syncRun, failed_count: -1 }), dependencies);
+  const dependencies = {
+    expectedSecret: secret,
+    ownerUserId: ownerId,
+    recordRun: async () => {},
+  };
+  const invalidInterval = await handleSyncRunRequest(
+    makeRequest({ ...syncRun, finished_at: "2026-10-31T09:59:00.000Z" }),
+    dependencies,
+  );
+  const invalidCount = await handleSyncRunRequest(
+    makeRequest({ ...syncRun, failed_count: -1 }),
+    dependencies,
+  );
   assert.equal(invalidInterval.status, 400);
   assert.equal(invalidCount.status, 400);
 });

@@ -14,7 +14,9 @@ export function matchCourse(
   fullText: string,
   courses: CourseDefinition[],
 ): CourseDefinition | null {
-  const haystack = normalizeCourseLabel([candidateText, fullText].filter(Boolean).join("\n"));
+  const haystack = normalizeCourseLabel(
+    [candidateText, fullText].filter(Boolean).join("\n"),
+  );
   if (!haystack) return null;
 
   const scored = courses
@@ -22,7 +24,9 @@ export function matchCourse(
       const labels = [course.course_code ?? "", course.name, ...course.aliases]
         .map((value) => ({ value, normalized: normalizeCourseLabel(value) }))
         .filter(({ normalized }) => normalized.length >= 3);
-      const exact = labels.find(({ normalized }) => normalized && haystack.includes(normalized));
+      const exact = labels.find(
+        ({ normalized }) => normalized && haystack.includes(normalized),
+      );
       return { course, length: exact?.normalized.length ?? 0 };
     })
     .filter(({ length }) => length > 0)

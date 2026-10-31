@@ -9,7 +9,10 @@ import {
   parseDueDateText,
   uniqueDueDateText,
 } from "@/lib/email/extract";
-import { matchCourse, extractCourseCandidate } from "@/lib/email/course-matcher";
+import {
+  matchCourse,
+  extractCourseCandidate,
+} from "@/lib/email/course-matcher";
 import { normalizeEmail } from "@/lib/email/normalize";
 import type {
   CourseDefinition,
@@ -40,7 +43,8 @@ function taskReasons(input: {
   if (!input.title) addReason(reasons, "title_missing");
   if (!input.courseId) addReason(reasons, "course_unmatched");
   for (const reason of input.dueReasons) addReason(reasons, reason);
-  if (input.classificationConflict) addReason(reasons, "classification_conflict");
+  if (input.classificationConflict)
+    addReason(reasons, "classification_conflict");
   return reasons;
 }
 
@@ -48,7 +52,10 @@ function taskClassification(value: string): TaskClassification {
   return value as TaskClassification;
 }
 
-export function parseEmail(input: EmailInput, options: ParseOptions = {}): ParseResult {
+export function parseEmail(
+  input: EmailInput,
+  options: ParseOptions = {},
+): ParseResult {
   const normalized = normalizeEmail(input);
   const courseList = options.courses ?? [];
   const combinedText = `${normalized.subject}\n${normalized.body}`;
@@ -60,22 +67,32 @@ export function parseEmail(input: EmailInput, options: ParseOptions = {}): Parse
   const classification = classificationResult.classification;
   const descriptions = extractDescription(normalized.body);
   const portalUrl = findPortalUrl(normalized.links, normalized.body);
-  const dueTexts = extractExplicitDueDateTexts(normalized.subject, normalized.body);
+  const dueTexts = extractExplicitDueDateTexts(
+    normalized.subject,
+    normalized.body,
+  );
   const commonDueText = uniqueDueDateText(dueTexts);
   const subjectTitle = extractSubjectTitle(normalized.subject);
-  const bodyTitle = normalized.body.match(/\bthe assignment\s+(.+?)\s+in\s+course\b/i)?.[1]?.trim();
+  const bodyTitle = normalized.body
+    .match(/\bthe assignment\s+(.+?)\s+in\s+course\b/i)?.[1]
+    ?.trim();
   const defaultTitle = subjectTitle ?? bodyTitle ?? null;
   const courseCandidate = extractCourseCandidate(combinedText);
   const matchedCourse = matchCourse(courseCandidate, combinedText, courseList);
 
   const rootReasons: string[] = [];
   if (classification === "unknown") addReason(rootReasons, "unknown_type");
-  if (classificationResult.conflict) addReason(rootReasons, "classification_conflict");
+  if (classificationResult.conflict)
+    addReason(rootReasons, "classification_conflict");
 
   const tasks: ParsedTask[] = [];
   let announcement: ParsedAnnouncement | null = null;
 
-  if (classification === "assignment" || classification === "quiz" || classification === "exam") {
+  if (
+    classification === "assignment" ||
+    classification === "quiz" ||
+    classification === "exam"
+  ) {
     const bulletTasks = extractAssignmentLines(normalized.body);
     const isDigest = bulletTasks.length > 0;
     const candidates = isDigest
@@ -93,14 +110,19 @@ export function parseEmail(input: EmailInput, options: ParseOptions = {}): Parse
         ];
 
     for (const candidate of candidates) {
-      const taskCourse = matchCourse(candidate.courseCandidate, combinedText, courseList);
-      const due = !candidate.dueText && dueTexts.length > 1
-        ? {
-            dueAt: null,
-            originalDueText: dueTexts.join("; "),
-            reviewReasons: ["due_date_ambiguous"],
-          }
-        : parseDueDateText(candidate.dueText, options.sourceTimeZone);
+      const taskCourse = matchCourse(
+        candidate.courseCandidate,
+        combinedText,
+        courseList,
+      );
+      const due =
+        !candidate.dueText && dueTexts.length > 1
+          ? {
+              dueAt: null,
+              originalDueText: dueTexts.join("; "),
+              reviewReasons: ["due_date_ambiguous"],
+            }
+          : parseDueDateText(candidate.dueText, options.sourceTimeZone);
       const title = candidate.title?.trim() || null;
       const reasons = taskReasons({
         title,
@@ -151,11 +173,12 @@ export function parseEmail(input: EmailInput, options: ParseOptions = {}): Parse
   }
 
   const parsedDue = parseDueDateText(commonDueText, options.sourceTimeZone);
-  const confidence = classification === "unknown"
-    ? "low"
-    : rootReasons.length > 0
-      ? "medium"
-      : "high";
+  const confidence =
+    classification === "unknown"
+      ? "low"
+      : rootReasons.length > 0
+        ? "medium"
+        : "high";
 
   return {
     classification,
@@ -165,7 +188,8 @@ export function parseEmail(input: EmailInput, options: ParseOptions = {}): Parse
     title: tasks.length === 1 ? tasks[0].title : defaultTitle,
     description: descriptions,
     dueAt: tasks.length === 1 ? tasks[0].dueAt : parsedDue.dueAt,
-    originalDueText: tasks.length === 1 ? tasks[0].originalDueText : parsedDue.originalDueText,
+    originalDueText:
+      tasks.length === 1 ? tasks[0].originalDueText : parsedDue.originalDueText,
     portalUrl,
     tasks,
     announcement,

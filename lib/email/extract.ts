@@ -40,7 +40,12 @@ export function extractExplicitDueDateTexts(...sources: string[]): string[] {
   for (const source of sources) {
     for (const match of source.matchAll(lead)) {
       const text = match[1].trim().replace(/[.;]+$/, "");
-      if (!results.some((value) => value.toLocaleLowerCase("en") === text.toLocaleLowerCase("en"))) {
+      if (
+        !results.some(
+          (value) =>
+            value.toLocaleLowerCase("en") === text.toLocaleLowerCase("en"),
+        )
+      ) {
         results.push(text);
       }
     }
@@ -55,7 +60,16 @@ function parseDateParts(value: string) {
   );
   if (!match) return null;
 
-  const [, weekday, dayText, monthText, yearText, hourText, minuteText, meridiem] = match;
+  const [
+    ,
+    weekday,
+    dayText,
+    monthText,
+    yearText,
+    hourText,
+    minuteText,
+    meridiem,
+  ] = match;
   const year = Number(yearText);
   const month = MONTHS[monthText.toLowerCase()];
   const day = Number(dayText);
@@ -79,17 +93,45 @@ function parseDateParts(value: string) {
   }
 
   const expectedWeekday = weekday
-    ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getUTCDay()]
+    ? [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ][date.getUTCDay()]
     : null;
 
-  return { year, month, day, hour, minute, expectedWeekday, actualWeekday: weekday };
+  return {
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    expectedWeekday,
+    actualWeekday: weekday,
+  };
 }
 
 function localDateTimeToUtc(
-  parts: { year: number; month: number; day: number; hour: number; minute: number },
+  parts: {
+    year: number;
+    month: number;
+    day: number;
+    hour: number;
+    minute: number;
+  },
   timeZone: string,
 ): { dueAt: string | null; ambiguous: boolean } {
-  const target = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+  const target = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+  );
   const formatter = new Intl.DateTimeFormat("en-GB", {
     timeZone,
     year: "numeric",
@@ -103,7 +145,9 @@ function localDateTimeToUtc(
 
   const localAsUtc = (instant: number) => {
     const fields = Object.fromEntries(
-      formatter.formatToParts(new Date(instant)).map(({ type, value }) => [type, value]),
+      formatter
+        .formatToParts(new Date(instant))
+        .map(({ type, value }) => [type, value]),
     );
     return Date.UTC(
       Number(fields.year),
@@ -125,16 +169,29 @@ function localDateTimeToUtc(
     .map((offset) => target - offset)
     .filter((instant) => localAsUtc(instant) === target);
 
-  if (matches.length === 1) return { dueAt: new Date(matches[0]).toISOString(), ambiguous: false };
+  if (matches.length === 1)
+    return { dueAt: new Date(matches[0]).toISOString(), ambiguous: false };
   return { dueAt: null, ambiguous: matches.length > 1 };
 }
 
-export function parseDueDateText(value: string | null, sourceTimeZone?: string): DueDateResult {
-  if (!value) return { dueAt: null, originalDueText: null, reviewReasons: ["due_date_missing"] };
+export function parseDueDateText(
+  value: string | null,
+  sourceTimeZone?: string,
+): DueDateResult {
+  if (!value)
+    return {
+      dueAt: null,
+      originalDueText: null,
+      reviewReasons: ["due_date_missing"],
+    };
 
   const parts = parseDateParts(value);
   if (!parts) {
-    return { dueAt: null, originalDueText: value, reviewReasons: ["due_date_unparseable"] };
+    return {
+      dueAt: null,
+      originalDueText: value,
+      reviewReasons: ["due_date_unparseable"],
+    };
   }
 
   if (parts.expectedWeekday && parts.expectedWeekday !== parts.actualWeekday) {
@@ -146,11 +203,19 @@ export function parseDueDateText(value: string | null, sourceTimeZone?: string):
   }
 
   if (parts.hour === null || parts.minute === null) {
-    return { dueAt: null, originalDueText: value, reviewReasons: ["due_time_missing"] };
+    return {
+      dueAt: null,
+      originalDueText: value,
+      reviewReasons: ["due_time_missing"],
+    };
   }
 
   if (!sourceTimeZone) {
-    return { dueAt: null, originalDueText: value, reviewReasons: ["source_timezone_not_configured"] };
+    return {
+      dueAt: null,
+      originalDueText: value,
+      reviewReasons: ["source_timezone_not_configured"],
+    };
   }
 
   try {
@@ -165,15 +230,27 @@ export function parseDueDateText(value: string | null, sourceTimeZone?: string):
       sourceTimeZone,
     );
     if (conversion.dueAt) {
-      return { dueAt: conversion.dueAt, originalDueText: value, reviewReasons: [] };
+      return {
+        dueAt: conversion.dueAt,
+        originalDueText: value,
+        reviewReasons: [],
+      };
     }
     return {
       dueAt: null,
       originalDueText: value,
-      reviewReasons: [conversion.ambiguous ? "due_time_ambiguous_in_timezone" : "due_time_invalid_in_timezone"],
+      reviewReasons: [
+        conversion.ambiguous
+          ? "due_time_ambiguous_in_timezone"
+          : "due_time_invalid_in_timezone",
+      ],
     };
   } catch {
-    return { dueAt: null, originalDueText: value, reviewReasons: ["source_timezone_invalid"] };
+    return {
+      dueAt: null,
+      originalDueText: value,
+      reviewReasons: ["source_timezone_invalid"],
+    };
   }
 }
 
@@ -184,7 +261,9 @@ export function extractSubjectTitle(subject: string): string | null {
   const overduePrefix = subject.match(/^overdue:\s*(.+)$/i);
   if (overduePrefix?.[1]) return overduePrefix[1].trim();
 
-  const typedPrefix = subject.match(/^(?:assignment|quiz|exam|announcement)\s*:\s*(.+)$/i);
+  const typedPrefix = subject.match(
+    /^(?:assignment|quiz|exam|announcement)\s*:\s*(.+)$/i,
+  );
   if (typedPrefix?.[1]) return typedPrefix[1].trim();
 
   if (/^you have assignments due in\b/i.test(subject)) return null;
@@ -202,13 +281,16 @@ export function extractAssignmentLines(body: string): AssignmentLine[] {
     if (!match) continue;
 
     const [, title, code, name] = match;
-    const timeLine = lines.slice(index + 1, index + 3).find((line) => /^\s*due\s*:/i.test(line));
+    const timeLine = lines
+      .slice(index + 1, index + 3)
+      .find((line) => /^\s*due\s*:/i.test(line));
     const timeMatch = timeLine?.match(/\b(\d{1,2}:\d{2}\s*(?:AM|PM))\b/i);
     assignments.push({
       title: title.trim(),
-      courseCandidate: /^\[?redacted/i.test(code) || /^\[?redacted/i.test(name)
-        ? null
-        : `${code.trim()} - ${name.trim()}`,
+      courseCandidate:
+        /^\[?redacted/i.test(code) || /^\[?redacted/i.test(name)
+          ? null
+          : `${code.trim()} - ${name.trim()}`,
       dueTimeText: timeMatch?.[1] ?? null,
     });
   }
@@ -226,14 +308,18 @@ export function findPortalUrl(links: EmailLink[], body: string): string | null {
     }
   });
 
-  const labeled = usable.find((link) => /activity|assignment|quiz|exam|course|open|view/i.test(link.label));
+  const labeled = usable.find((link) =>
+    /activity|assignment|quiz|exam|course|open|view/i.test(link.label),
+  );
   if (labeled) return labeled.url;
   if (usable.length === 1) return usable[0].url;
 
   const plain = body.match(/https:\/\/[^\s<>"')\]]+/i)?.[0];
   if (!plain) return null;
   try {
-    return new URL(plain).hostname === "mail.google.com" ? null : plain.replace(/[.,;:!?]+$/, "");
+    return new URL(plain).hostname === "mail.google.com"
+      ? null
+      : plain.replace(/[.,;:!?]+$/, "");
   } catch {
     return null;
   }
@@ -260,12 +346,22 @@ export function extractDescription(body: string): string | null {
   return text ? text.slice(0, 4000) : null;
 }
 
-export function combineDateAndTime(dateText: string | null, timeText: string | null): string | null {
-  if (!dateText || !timeText || /,\s*\d{1,2}:\d{2}\s*(?:AM|PM)$/i.test(dateText)) return dateText;
+export function combineDateAndTime(
+  dateText: string | null,
+  timeText: string | null,
+): string | null {
+  if (
+    !dateText ||
+    !timeText ||
+    /,\s*\d{1,2}:\d{2}\s*(?:AM|PM)$/i.test(dateText)
+  )
+    return dateText;
   return `${dateText}, ${timeText}`;
 }
 
 export function uniqueDueDateText(values: string[]): string | null {
-  const unique = [...new Set(values.map((value) => value.toLocaleLowerCase("en")))];
+  const unique = [
+    ...new Set(values.map((value) => value.toLocaleLowerCase("en"))),
+  ];
   return unique.length === 1 ? values[0] : null;
 }

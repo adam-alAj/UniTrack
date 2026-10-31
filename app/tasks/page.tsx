@@ -7,8 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import type { TaskRecord } from "@/lib/tasks/schema";
 
 export default async function TasksPage() {
+  const nowMs = new Date().getTime();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const loadTasks = async () => {
@@ -16,7 +19,9 @@ export default async function TasksPage() {
     for (let offset = 0; offset < 1_000_000; offset += 1000) {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, user_id, course_id, source_email_id, title, description, type, status, priority, due_at, source_url, needs_review, original_due_text, review_reasons, created_at, updated_at, courses(id, name, course_code), email_messages(id, sender, subject, received_at, gmail_url)")
+        .select(
+          "id, user_id, course_id, source_email_id, title, description, type, status, priority, due_at, source_url, needs_review, original_due_text, review_reasons, created_at, updated_at, courses(id, name, course_code), email_messages(id, sender, subject, received_at, gmail_url)",
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -25,7 +30,10 @@ export default async function TasksPage() {
       rows.push(...((data ?? []) as unknown as TaskRecord[]));
       if ((data ?? []).length < 1000) return { data: rows, error: null };
     }
-    return { data: null, error: new Error("Task list exceeded the maximum supported size.") };
+    return {
+      data: null,
+      error: new Error("Task list exceeded the maximum supported size."),
+    };
   };
 
   const [tasksResult, coursesResult] = await Promise.all([
@@ -39,15 +47,31 @@ export default async function TasksPage() {
 
   return (
     <AppShell activeSection="tasks" email={user.email ?? ""}>
-      {(tasksResult.error || coursesResult.error) ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm" role="alert">
-          <div className="flex items-center gap-2 font-medium text-destructive"><AlertCircle className="size-4" aria-hidden="true" />Tasks could not be loaded</div>
-          <p className="mt-2 text-muted-foreground">Refresh the page to try again. Your account data remains protected by Supabase access policies.</p>
+      {tasksResult.error || coursesResult.error ? (
+        <div
+          className="border-destructive/30 bg-destructive/5 rounded-xl border p-5 text-sm"
+          role="alert"
+        >
+          <div className="text-destructive flex items-center gap-2 font-medium">
+            <AlertCircle className="size-4" aria-hidden="true" />
+            Tasks could not be loaded
+          </div>
+          <p className="text-muted-foreground mt-2">
+            Refresh the page to try again. Your account data remains protected
+            by Supabase access policies.
+          </p>
         </div>
       ) : (
         <TaskManager
           initialTasks={(tasksResult.data ?? []) as unknown as TaskRecord[]}
-          courses={(coursesResult.data ?? []) as { id: string; name: string; course_code: string | null }[]}
+          courses={
+            (coursesResult.data ?? []) as {
+              id: string;
+              name: string;
+              course_code: string | null;
+            }[]
+          }
+          nowMs={nowMs}
         />
       )}
     </AppShell>

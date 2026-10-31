@@ -28,6 +28,7 @@
 **Objective:** Understand the workspace and lock the implementation scope.
 
 Tasks:
+
 1. Inspect repository structure, package manager, existing code, and Git status.
 2. Read `UniTrack_Project_Plan.md` completely.
 3. Read this implementation plan completely.
@@ -37,6 +38,7 @@ Tasks:
 7. Create a concise implementation checklist.
 
 Acceptance criteria:
+
 - [ ] Repository state documented.
 - [ ] Project plan and implementation plan reviewed.
 - [ ] No existing work overwritten.
@@ -47,6 +49,7 @@ Acceptance criteria:
 **Objective:** Create the frontend/backend application foundation.
 
 Tasks:
+
 1. Initialize Next.js App Router with TypeScript.
 2. Configure Tailwind CSS.
 3. Install and initialize shadcn/ui.
@@ -66,6 +69,7 @@ Tasks:
 9. Create a responsive app shell with sidebar and top bar; use temporary navigation placeholders only.
 
 Validation:
+
 - [ ] Dependencies install successfully.
 - [ ] `npm run dev` starts.
 - [ ] `npm run lint` passes.
@@ -77,6 +81,7 @@ Validation:
 **Objective:** Establish the secure data layer.
 
 Tasks:
+
 1. Create or connect the Supabase project.
 2. Add SQL migrations for:
    - `courses`
@@ -94,6 +99,7 @@ Tasks:
 10. Seed only clearly marked development data.
 
 Validation:
+
 - [ ] Migrations apply cleanly.
 - [ ] RLS is enabled on all user-owned tables.
 - [ ] User A cannot read or modify User B records.
@@ -111,6 +117,7 @@ Do not build the full dashboard on an insecure or unverified data layer.
 Known fact: A preliminary script successfully connected to the university mailbox.
 
 Tasks:
+
 1. Create or open the Apps Script project.
 2. Use the least-privilege Gmail read scope needed.
 3. Run a diagnostic search with a conservative query such as `newer_than:7d`.
@@ -122,6 +129,7 @@ Tasks:
 9. Do not log or commit full private email content.
 
 Validation:
+
 - [ ] Real university messages can be read.
 - [ ] The query excludes unrelated personal mail as much as practical.
 - [ ] Trigger execution is permitted.
@@ -136,6 +144,7 @@ Successful one-time Gmail access does not automatically prove scheduled triggers
 **Objective:** Convert raw email data into a structured, reviewable representation.
 
 Tasks:
+
 1. Create pure parsing functions separate from Gmail and Supabase code.
 2. Normalize HTML/plain text safely.
 3. Define a typed parser result:
@@ -155,6 +164,7 @@ Tasks:
 10. Do not call an AI service in this phase.
 
 Validation:
+
 - [ ] Assignment fixture classified correctly.
 - [ ] Quiz fixture classified correctly.
 - [ ] Exam fixture classified correctly.
@@ -173,6 +183,7 @@ Validation:
 **Objective:** Receive Apps Script payloads and persist them idempotently.
 
 Tasks:
+
 1. Implement a Next.js Route Handler, e.g. `POST /api/ingest/email`.
 2. Validate request method, content type, body size, and Zod schema.
 3. Authenticate with a long random shared secret from server environment.
@@ -192,6 +203,7 @@ Tasks:
 13. Add structured logs without full email body or secrets.
 
 Validation:
+
 - [ ] Valid request accepted.
 - [ ] Missing secret rejected.
 - [ ] Invalid secret rejected.
@@ -205,6 +217,7 @@ Validation:
 **Objective:** Poll Gmail and deliver messages safely.
 
 Tasks:
+
 1. Add `UniTrack_Gmail_Sync.gs` to the Apps Script project.
 2. Configure Script Properties:
    - `UNITRACK_API_URL`
@@ -227,6 +240,7 @@ Tasks:
 10. Keep batch size conservative and monitor Apps Script quotas.
 
 Validation:
+
 - [ ] Manual sync works.
 - [ ] New email reaches API.
 - [ ] Successful message receives sync cursor.
@@ -241,6 +255,7 @@ Validation:
 **Objective:** Build the primary user experience using real Supabase data.
 
 Tasks:
+
 1. Finalize responsive sidebar and header.
 2. Build overview dashboard.
 3. Add summary cards:
@@ -257,6 +272,7 @@ Tasks:
 10. Use realistic UI labels and avoid placeholder content in production.
 
 Validation:
+
 - [ ] Dashboard loads authenticated user's data.
 - [ ] Empty state is useful.
 - [ ] Loading and error states work.
@@ -268,6 +284,7 @@ Validation:
 **Objective:** Make extracted tasks actionable.
 
 Tasks:
+
 1. Build tasks table/list.
 2. Add filters for course, type, status, and date.
 3. Add search.
@@ -283,6 +300,7 @@ Tasks:
 10. Validate all updates with Zod and RLS.
 
 Validation:
+
 - [ ] Filters work together.
 - [ ] Edit persists.
 - [ ] Status update persists.
@@ -300,6 +318,7 @@ Validation:
 **Objective:** Display real dated tasks in a calendar.
 
 Tasks:
+
 1. Add a calendar library only if needed; prefer a lightweight solution.
 2. Implement month view.
 3. Query tasks with non-null due dates.
@@ -310,6 +329,7 @@ Tasks:
 8. Do not display undated tasks as dated events.
 
 Validation:
+
 - [ ] Due dates appear on correct local dates.
 - [ ] Null dates are excluded.
 - [ ] Month navigation works.
@@ -320,6 +340,7 @@ Validation:
 **Objective:** Make the ingestion system observable and recoverable.
 
 Tasks:
+
 1. Build announcements page.
 2. Build email/sync page.
 3. Show last sync and recent sync runs.
@@ -330,6 +351,7 @@ Tasks:
 8. Add course management for names, codes, aliases, and colors.
 
 Validation:
+
 - [ ] Announcement appears in the correct page.
 - [ ] Sync history is accurate.
 - [ ] Failed record is visible.
@@ -342,6 +364,7 @@ Validation:
 **Objective:** Verify the complete real-world workflow.
 
 Test scenarios:
+
 1. New assignment notification arrives.
 2. New quiz notification arrives.
 3. New exam notification arrives.
@@ -359,6 +382,7 @@ Test scenarios:
 15. User from another account attempts to access protected data.
 
 Validation:
+
 - [ ] All critical scenarios pass.
 - [ ] No message is marked processed before confirmed API handling.
 - [ ] No fabricated deadline.
@@ -374,6 +398,7 @@ Validation:
 **Objective:** Publish the working MVP.
 
 Tasks:
+
 1. Push code to GitHub.
 2. Create/configure production Supabase project.
 3. Apply production migrations.
@@ -390,6 +415,7 @@ Tasks:
 14. Tag the MVP release.
 
 Validation:
+
 - [ ] Production URL works.
 - [ ] Authentication works.
 - [ ] Database and RLS work.
@@ -482,15 +508,16 @@ Do not commit actual values. Use a strong random secret and store it only in App
 
 ## 5. Time Budget and Priorities
 
-| Priority | Phase | Target |
-|---|---|---|
-| P0 | 00–03: foundation, DB, Gmail feasibility | Day 1 |
-| P0 | 04–06: parser, API, synchronization | Day 1–2 |
-| P0 | 07–08: dashboard and task management | Day 2 |
-| P1 | 09–10: calendar, announcements, recovery | Day 3 |
-| P0 | 11–12: testing and deployment | Day 3 |
+| Priority | Phase                                    | Target  |
+| -------- | ---------------------------------------- | ------- |
+| P0       | 00–03: foundation, DB, Gmail feasibility | Day 1   |
+| P0       | 04–06: parser, API, synchronization      | Day 1–2 |
+| P0       | 07–08: dashboard and task management     | Day 2   |
+| P1       | 09–10: calendar, announcements, recovery | Day 3   |
+| P0       | 11–12: testing and deployment            | Day 3   |
 
 If time becomes limited:
+
 1. Preserve secure ingestion and idempotency.
 2. Preserve task listing/editing/status.
 3. Preserve real email-to-dashboard end-to-end flow.
@@ -507,21 +534,27 @@ For every phase, record:
 ## Phase XX — Name
 
 ### Changes
+
 - ...
 
 ### Commands executed
+
 - ...
 
 ### Validation
+
 - [ ] Check — PASS/FAIL
 
 ### Issues
+
 - ...
 
 ### Decisions
+
 - ...
 
 ### Status
+
 NOT STARTED / IN PROGRESS / BLOCKED / COMPLETE
 ```
 

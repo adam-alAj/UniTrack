@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { TaskInputSchema, TaskUpdateSchema, type TaskActionResult } from "@/lib/tasks/schema";
+import {
+  TaskInputSchema,
+  TaskUpdateSchema,
+  type TaskActionResult,
+} from "@/lib/tasks/schema";
 
 function nullableText(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -24,14 +28,23 @@ function taskFields(formData: FormData) {
 
 async function ownerClient() {
   const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   if (error || !user) return null;
   return { supabase, user };
 }
 
-export async function createTask(formData: FormData): Promise<TaskActionResult> {
+export async function createTask(
+  formData: FormData,
+): Promise<TaskActionResult> {
   const owner = await ownerClient();
-  if (!owner) return { success: false, error: "Your session expired. Sign in and try again." };
+  if (!owner)
+    return {
+      success: false,
+      error: "Your session expired. Sign in and try again.",
+    };
 
   let fields: ReturnType<typeof taskFields>;
   try {
@@ -40,19 +53,35 @@ export async function createTask(formData: FormData): Promise<TaskActionResult> 
     return { success: false, error: "Enter a valid deadline." };
   }
   const parsed = TaskInputSchema.safeParse(fields);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Check the task details." };
+  if (!parsed.success)
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Check the task details.",
+    };
 
-  const { error } = await owner.supabase.from("tasks").insert({ ...parsed.data, user_id: owner.user.id });
-  if (error) return { success: false, error: "The task could not be saved. Check the course and try again." };
+  const { error } = await owner.supabase
+    .from("tasks")
+    .insert({ ...parsed.data, user_id: owner.user.id });
+  if (error)
+    return {
+      success: false,
+      error: "The task could not be saved. Check the course and try again.",
+    };
 
   revalidatePath("/");
   revalidatePath("/tasks");
   return { success: true };
 }
 
-export async function updateTask(formData: FormData): Promise<TaskActionResult> {
+export async function updateTask(
+  formData: FormData,
+): Promise<TaskActionResult> {
   const owner = await ownerClient();
-  if (!owner) return { success: false, error: "Your session expired. Sign in and try again." };
+  if (!owner)
+    return {
+      success: false,
+      error: "Your session expired. Sign in and try again.",
+    };
 
   let fields: ReturnType<typeof taskFields>;
   try {
@@ -60,8 +89,15 @@ export async function updateTask(formData: FormData): Promise<TaskActionResult> 
   } catch {
     return { success: false, error: "Enter a valid deadline." };
   }
-  const parsed = TaskUpdateSchema.safeParse({ ...fields, id: String(formData.get("id") ?? "") });
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Check the task details." };
+  const parsed = TaskUpdateSchema.safeParse({
+    ...fields,
+    id: String(formData.get("id") ?? ""),
+  });
+  if (!parsed.success)
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Check the task details.",
+    };
 
   const { id, ...values } = parsed.data;
   const { data, error } = await owner.supabase
@@ -72,7 +108,11 @@ export async function updateTask(formData: FormData): Promise<TaskActionResult> 
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { success: false, error: "The task could not be updated. It may no longer be available." };
+  if (error || !data)
+    return {
+      success: false,
+      error: "The task could not be updated. It may no longer be available.",
+    };
   revalidatePath("/");
   revalidatePath("/tasks");
   return { success: true };

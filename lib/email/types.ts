@@ -1,9 +1,5 @@
 export type EmailClassification =
-  | "assignment"
-  | "quiz"
-  | "exam"
-  | "announcement"
-  | "unknown";
+  "assignment" | "quiz" | "exam" | "announcement" | "unknown";
 
 export type TaskClassification = Extract<
   EmailClassification,

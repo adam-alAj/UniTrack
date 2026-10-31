@@ -27,10 +27,13 @@ export async function POST(request: Request) {
 }
 
 function methodNotAllowed() {
-  return Response.json({ success: false, error: "method_not_allowed" }, {
-    status: 405,
-    headers: { allow: "POST", "cache-control": "no-store" },
-  });
+  return Response.json(
+    { success: false, error: "method_not_allowed" },
+    {
+      status: 405,
+      headers: { allow: "POST", "cache-control": "no-store" },
+    },
+  );
 }
 
 export const GET = methodNotAllowed;

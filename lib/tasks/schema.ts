@@ -1,15 +1,19 @@
 import { z } from "zod";
 
-export const TaskInputSchema = z.object({
-  title: z.string().trim().min(1, "Add a task title.").max(500),
-  description: z.string().trim().max(20_000).nullable(),
-  course_id: z.string().uuid().nullable(),
-  type: z.enum(["assignment", "quiz", "exam", "other"]),
-  status: z.enum(["not_started", "in_progress", "completed"]),
-  due_at: z.string().datetime({ offset: true }).nullable(),
-}).strict();
+export const TaskInputSchema = z
+  .object({
+    title: z.string().trim().min(1, "Add a task title.").max(500),
+    description: z.string().trim().max(20_000).nullable(),
+    course_id: z.string().uuid().nullable(),
+    type: z.enum(["assignment", "quiz", "exam", "other"]),
+    status: z.enum(["not_started", "in_progress", "completed"]),
+    due_at: z.string().datetime({ offset: true }).nullable(),
+  })
+  .strict();
 
-export const TaskUpdateSchema = TaskInputSchema.extend({ id: z.string().uuid() }).strict();
+export const TaskUpdateSchema = TaskInputSchema.extend({
+  id: z.string().uuid(),
+}).strict();
 export type TaskInput = z.infer<typeof TaskInputSchema>;
 
 export type TaskRecord = TaskInput & {
@@ -33,4 +37,5 @@ export type TaskRecord = TaskInput & {
   } | null;
 };
 
-export type TaskActionResult = { success: true } | { success: false; error: string };
+export type TaskActionResult =
+  { success: true } | { success: false; error: string };

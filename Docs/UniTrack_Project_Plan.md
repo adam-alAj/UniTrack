@@ -101,23 +101,23 @@ These may be considered after the MVP has been tested with real university email
 
 ## 4. Final Technology Stack
 
-| Layer | Technology | Responsibility |
-|---|---|---|
-| Frontend | Next.js App Router + TypeScript | Web application |
-| Styling | Tailwind CSS | Layout and styling |
-| UI components | shadcn/ui | Accessible interface components |
-| Icons | Lucide | Interface icons |
-| Forms/validation | React Hook Form + Zod | Form validation |
-| Database | Supabase PostgreSQL | Persistent application data |
-| Authentication | Supabase Auth | Protect the dashboard |
-| Authorization | Supabase RLS | Restrict user data |
-| Email reader | Google Apps Script `GmailApp` | Read matching university emails |
-| Scheduler | Apps Script time-driven trigger | Run email polling periodically |
-| Transport | Apps Script `UrlFetchApp` HTTPS POST | Send email payloads to the backend |
-| Backend | Next.js Route Handler | Validate and ingest payloads |
-| Database access | Supabase server-side client | Server-only database operations |
-| Hosting | Vercel | Deploy Next.js |
-| Version control | Git + GitHub | Source control |
+| Layer            | Technology                           | Responsibility                     |
+| ---------------- | ------------------------------------ | ---------------------------------- |
+| Frontend         | Next.js App Router + TypeScript      | Web application                    |
+| Styling          | Tailwind CSS                         | Layout and styling                 |
+| UI components    | shadcn/ui                            | Accessible interface components    |
+| Icons            | Lucide                               | Interface icons                    |
+| Forms/validation | React Hook Form + Zod                | Form validation                    |
+| Database         | Supabase PostgreSQL                  | Persistent application data        |
+| Authentication   | Supabase Auth                        | Protect the dashboard              |
+| Authorization    | Supabase RLS                         | Restrict user data                 |
+| Email reader     | Google Apps Script `GmailApp`        | Read matching university emails    |
+| Scheduler        | Apps Script time-driven trigger      | Run email polling periodically     |
+| Transport        | Apps Script `UrlFetchApp` HTTPS POST | Send email payloads to the backend |
+| Backend          | Next.js Route Handler                | Validate and ingest payloads       |
+| Database access  | Supabase server-side client          | Server-only database operations    |
+| Hosting          | Vercel                               | Deploy Next.js                     |
+| Version control  | Git + GitHub                         | Source control                     |
 
 ### 4.1 Architecture Principle
 
@@ -261,86 +261,86 @@ Use UUID primary keys and `timestamptz` for timestamps. Every user-owned record 
 
 ### 7.1 `courses`
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | Primary key |
-| user_id | uuid | Owner |
-| name | text | Required |
-| course_code | text | Nullable |
-| instructor | text | Nullable |
-| aliases | text[] | Alternative names/codes |
-| color | text | UI color token |
-| created_at | timestamptz | Default now() |
+| Column      | Type        | Notes                   |
+| ----------- | ----------- | ----------------------- |
+| id          | uuid        | Primary key             |
+| user_id     | uuid        | Owner                   |
+| name        | text        | Required                |
+| course_code | text        | Nullable                |
+| instructor  | text        | Nullable                |
+| aliases     | text[]      | Alternative names/codes |
+| color       | text        | UI color token          |
+| created_at  | timestamptz | Default now()           |
 
 Unique recommendation: `(user_id, normalized course_code)` when course_code is not null.
 
 ### 7.2 `email_messages`
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | Primary key |
-| user_id | uuid | Owner |
-| gmail_message_id | text | Required, unique per user |
-| gmail_thread_id | text | Nullable |
-| sender | text | Required |
-| subject | text | Nullable |
-| received_at | timestamptz | Nullable |
-| gmail_url | text | Nullable |
-| body_text | text | Private; restrict access |
-| processing_status | text | received/processed/needs_review/failed/ignored |
-| processing_error | text | Nullable |
-| processed_at | timestamptz | Nullable |
-| created_at | timestamptz | Default now() |
+| Column            | Type        | Notes                                          |
+| ----------------- | ----------- | ---------------------------------------------- |
+| id                | uuid        | Primary key                                    |
+| user_id           | uuid        | Owner                                          |
+| gmail_message_id  | text        | Required, unique per user                      |
+| gmail_thread_id   | text        | Nullable                                       |
+| sender            | text        | Required                                       |
+| subject           | text        | Nullable                                       |
+| received_at       | timestamptz | Nullable                                       |
+| gmail_url         | text        | Nullable                                       |
+| body_text         | text        | Private; restrict access                       |
+| processing_status | text        | received/processed/needs_review/failed/ignored |
+| processing_error  | text        | Nullable                                       |
+| processed_at      | timestamptz | Nullable                                       |
+| created_at        | timestamptz | Default now()                                  |
 
 Unique constraint: `(user_id, gmail_message_id)`.
 
 ### 7.3 `tasks`
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | Primary key |
-| user_id | uuid | Owner |
-| course_id | uuid | Nullable FK |
-| source_email_id | uuid | Nullable FK |
-| title | text | Required |
-| description | text | Nullable |
-| type | text | assignment/quiz/exam/other |
-| status | text | not_started/in_progress/completed |
-| priority | text | low/medium/high |
-| due_at | timestamptz | Nullable |
-| source_url | text | Nullable |
-| needs_review | boolean | Default false |
-| created_at | timestamptz | Default now() |
-| updated_at | timestamptz | Default now() |
+| Column          | Type        | Notes                             |
+| --------------- | ----------- | --------------------------------- |
+| id              | uuid        | Primary key                       |
+| user_id         | uuid        | Owner                             |
+| course_id       | uuid        | Nullable FK                       |
+| source_email_id | uuid        | Nullable FK                       |
+| title           | text        | Required                          |
+| description     | text        | Nullable                          |
+| type            | text        | assignment/quiz/exam/other        |
+| status          | text        | not_started/in_progress/completed |
+| priority        | text        | low/medium/high                   |
+| due_at          | timestamptz | Nullable                          |
+| source_url      | text        | Nullable                          |
+| needs_review    | boolean     | Default false                     |
+| created_at      | timestamptz | Default now()                     |
+| updated_at      | timestamptz | Default now()                     |
 
 ### 7.4 `announcements`
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | Primary key |
-| user_id | uuid | Owner |
-| course_id | uuid | Nullable FK |
-| source_email_id | uuid | Nullable FK |
-| title | text | Required |
-| content | text | Nullable |
-| source_url | text | Nullable |
-| received_at | timestamptz | Nullable |
-| needs_review | boolean | Default false |
-| created_at | timestamptz | Default now() |
+| Column          | Type        | Notes         |
+| --------------- | ----------- | ------------- |
+| id              | uuid        | Primary key   |
+| user_id         | uuid        | Owner         |
+| course_id       | uuid        | Nullable FK   |
+| source_email_id | uuid        | Nullable FK   |
+| title           | text        | Required      |
+| content         | text        | Nullable      |
+| source_url      | text        | Nullable      |
+| received_at     | timestamptz | Nullable      |
+| needs_review    | boolean     | Default false |
+| created_at      | timestamptz | Default now() |
 
 ### 7.5 `sync_runs`
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | Primary key |
-| user_id | uuid | Owner |
-| started_at | timestamptz | Required |
-| finished_at | timestamptz | Nullable |
-| status | text | running/success/partial/failed |
-| found_count | integer | Default 0 |
-| processed_count | integer | Default 0 |
-| failed_count | integer | Default 0 |
-| error_summary | text | Nullable |
+| Column          | Type        | Notes                          |
+| --------------- | ----------- | ------------------------------ |
+| id              | uuid        | Primary key                    |
+| user_id         | uuid        | Owner                          |
+| started_at      | timestamptz | Required                       |
+| finished_at     | timestamptz | Nullable                       |
+| status          | text        | running/success/partial/failed |
+| found_count     | integer     | Default 0                      |
+| processed_count | integer     | Default 0                      |
+| failed_count    | integer     | Default 0                      |
+| error_summary   | text        | Nullable                       |
 
 ### 7.6 Database Rules
 
@@ -519,18 +519,18 @@ For a hardened later version, use HMAC signatures with timestamp and replay prot
 
 ## 12. Risks and Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| University Workspace policy changes | Test scheduled Gmail access and reauthorization |
-| Email formats differ | Keep parser configurable; add real samples incrementally |
-| Wrong deadline extraction | Null + review state rather than guessing |
-| Duplicate notifications | Unique Gmail message ID + idempotent backend |
-| Temporary API outage | Do not label email processed until API success |
-| Trigger overlap | Script lock and bounded batch |
-| Secret leakage | Script Properties and server environment variables |
-| Missing course match | Unassigned review queue |
-| Timezone mismatch | UTC storage, local display, preserve source timestamp |
-| Gmail quotas | Small batch, periodic polling, monitor executions |
+| Risk                                | Mitigation                                               |
+| ----------------------------------- | -------------------------------------------------------- |
+| University Workspace policy changes | Test scheduled Gmail access and reauthorization          |
+| Email formats differ                | Keep parser configurable; add real samples incrementally |
+| Wrong deadline extraction           | Null + review state rather than guessing                 |
+| Duplicate notifications             | Unique Gmail message ID + idempotent backend             |
+| Temporary API outage                | Do not label email processed until API success           |
+| Trigger overlap                     | Script lock and bounded batch                            |
+| Secret leakage                      | Script Properties and server environment variables       |
+| Missing course match                | Unassigned review queue                                  |
+| Timezone mismatch                   | UTC storage, local display, preserve source timestamp    |
+| Gmail quotas                        | Small batch, periodic polling, monitor executions        |
 
 ---
 
