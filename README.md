@@ -13,7 +13,7 @@ UniTrack is a private academic workspace for university tasks and course announc
 1. Install dependencies: `npm install`.
 2. Copy `.env.example` to `.env.local`.
 3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project. Keep every server-only value out of browser code.
-4. Apply both migrations to the project. With the Supabase CLI, run `supabase link --project-ref YOUR_PROJECT_REF`, then `supabase db push`.
+4. Apply the migrations to the project. With the Supabase CLI, run `supabase link --project-ref YOUR_PROJECT_REF`, then `supabase db push`.
 5. Create the initial owner account in Supabase Authentication. Public sign-up is not exposed by this app.
 6. Start the app: `npm run dev`, then open <http://localhost:3000>.
 
@@ -40,11 +40,15 @@ Validate policy behavior in a non-production Supabase project with two test acco
 
 ## Gmail integration
 
-The ingestion API is `POST /api/ingest/email`; its server validates a bounded payload and bearer secret, derives owner identity from server configuration, parses records, and writes them atomically through a restricted database function. The Apps Script worker is `scripts/UniTrack_Gmail_Sync.gs`; copy it and `scripts/appsscript.json` into an Apps Script project, enable the Advanced Gmail service, configure required Script Properties, authorize read-only Gmail access, and run `diagnoseUniTrack` before installing the five-minute trigger with `setupUniTrackTrigger`.
+The ingestion API is `POST /api/ingest/email`; its server validates a bounded payload and bearer secret, derives owner identity from server configuration, parses records, and writes them atomically through a restricted database function. Failed deliveries are retained for review and can be retried with the original Gmail message ID. The worker reports completed run counts to `POST /api/ingest/sync-run` using the same bearer secret. The Apps Script worker is `scripts/UniTrack_Gmail_Sync.gs`; copy it and `scripts/appsscript.json` into an Apps Script project, enable the Advanced Gmail service, configure required Script Properties, authorize read-only Gmail access, and run `diagnoseUniTrack` before installing the five-minute trigger with `setupUniTrackTrigger`.
 
 User-provided screenshots show automated reminders from `noreply-eclass@bethlehem.edu`, due reminder subjects, “You have assignments due in N days” digest subjects, overdue notices, and a separate instructor-sent course project notice. A candidate query for automated notices is `from:noreply-eclass@bethlehem.edu`. It was not run against Gmail in this environment and does not cover instructor-sent mail. Portal URLs are not visible in the supplied screenshots. The parser preserves explicit date text and leaves a due timestamp null for a date without a time, missing timezone, ambiguity, or invalid date; configure the university's IANA timezone before ingestion.
 
 Email payload bodies are stored in `email_messages` to support traceability. Limit access through owner-only RLS and treat database backups/logging as private student data. The worker logs counts/status only, never message content, query, sender, or subject. Gmail read and trigger authorization must be tested in the intended Workspace account before enabling scheduled execution.
+
+## Deployment and recovery
+
+See [the deployment and recovery runbook](Docs/DEPLOYMENT.md) for the production setup sequence, release checklist, failure recovery, and secret rotation steps. Production deployment and live Gmail acceptance have not been verified yet; see `IMPLEMENTATION_LOG.md` before treating the MVP as released.
 
 ## Commands
 
@@ -53,6 +57,6 @@ Email payload bodies are stored in `email_messages` to support traceability. Lim
 - `npm run format:check` — Prettier check
 - `npm run build` — production build
 - `supabase db push` — apply pending local migrations to the linked project
-- `npm test` — parser, ingestion handler, and Apps Script worker unit tests
+- `npm test` — parser, API, schema, calendar date, course, and Apps Script worker unit tests
 
 The current workspace may not have the required credentials or runtime installed. See `IMPLEMENTATION_LOG.md` for the recorded validation status and blockers.

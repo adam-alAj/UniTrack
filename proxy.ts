@@ -52,5 +52,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // The ingestion route authenticates its own bearer secret and has no browser session.
-  matcher: ["/((?!api/ingest/email|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!api/ingest/(?:email|sync-run)|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

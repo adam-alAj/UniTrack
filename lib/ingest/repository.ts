@@ -10,12 +10,12 @@ export function createIngestionRepository(): IngestionRepository {
     async isDuplicate(userId, gmailMessageId) {
       const { data, error } = await supabase
         .from("email_messages")
-        .select("id")
+        .select("processing_status")
         .eq("user_id", userId)
         .eq("gmail_message_id", gmailMessageId)
         .maybeSingle();
       if (error) throw new Error("Email idempotency lookup failed.");
-      return Boolean(data);
+      return Boolean(data && data.processing_status !== "failed");
     },
 
     async listCourses(userId) {
@@ -52,6 +52,21 @@ export function createIngestionRepository(): IngestionRepository {
         throw new Error("Atomic email persistence failed.");
       }
       return data;
+    },
+
+    async recordFailure(userId, email, reason) {
+      const { error } = await supabase.rpc("record_email_processing_failure", {
+        p_user_id: userId,
+        p_gmail_message_id: email.gmail_message_id,
+        p_gmail_thread_id: email.gmail_thread_id,
+        p_sender: email.sender,
+        p_subject: email.subject,
+        p_received_at: email.received_at,
+        p_gmail_url: email.gmail_url,
+        p_body_text: email.body_text,
+        p_processing_error: reason,
+      });
+      if (error) throw new Error("Could not record processing failure.");
     },
   };
 }

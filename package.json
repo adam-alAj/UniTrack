@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx --test tests/email-parser.test.ts tests/ingest-handler.test.ts && node --test tests/apps-script.test.cjs",
+    "test": "tsx --test tests/email-parser.test.ts tests/ingest-handler.test.ts tests/task-schema.test.ts tests/sync-handler.test.ts tests/calendar-date-utils.test.ts tests/course-schema.test.ts && node --test tests/apps-script.test.cjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

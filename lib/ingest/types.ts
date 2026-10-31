@@ -36,6 +36,7 @@ export interface IngestionRepository {
   isDuplicate(userId: string, gmailMessageId: string): Promise<boolean>;
   listCourses(userId: string): Promise<CourseDefinition[]>;
   persistAtomically(input: AtomicEmailInput): Promise<"processed" | "needs_review" | "duplicate">;
+  recordFailure(userId: string, email: InboundEmail, reason: string): Promise<void>;
 }
 
 export type PreparedEmail = {

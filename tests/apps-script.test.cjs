@@ -9,7 +9,7 @@ const scriptSource = fs.readFileSync(
   'utf8',
 );
 
-function createWorker(responseFactory, throwFetch = false) {
+function createWorker(responseFactory, throwFetch = false, lockAvailable = true) {
   const stored = new Map([
     ['UNITRACK_API_URL', 'https://unitrack.example/api/ingest/email'],
     ['UNITRACK_INGEST_SECRET', 'TEST_ONLY_SECRET_VALUE'],
@@ -53,7 +53,7 @@ function createWorker(responseFactory, throwFetch = false) {
       }),
     },
     LockService: {
-      getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }),
+      getScriptLock: () => ({ tryLock: () => lockAvailable, releaseLock: () => {} }),
     },
     Gmail: {
       Users: {
@@ -109,13 +109,18 @@ test('confirmed API success advances the cursor and sends the agreed payload', (
   worker.context.syncUniTrackEmails();
 
   assert.ok(worker.stored.has('LAST_SUCCESSFUL_SYNC_EPOCH'));
-  assert.equal(worker.requests.length, 1);
+  assert.equal(worker.requests.length, 2);
   assert.equal(worker.requests[0].url, 'https://unitrack.example/api/ingest/email');
+  assert.equal(worker.requests[1].url, 'https://unitrack.example/api/ingest/sync-run');
   assert.equal(worker.requests[0].options.headers.Authorization, 'Bearer TEST_ONLY_SECRET_VALUE');
   const payload = JSON.parse(worker.requests[0].options.payload);
   assert.equal(payload.schema_version, 1);
   assert.equal(payload.gmail_message_id, 'test-message-id');
   assert.equal(payload.body_text, 'PRIVATE BODY THAT MUST NOT BE LOGGED');
+  const run = JSON.parse(worker.requests[1].options.payload);
+  assert.equal(run.status, 'success');
+  assert.equal(run.found_count, 1);
+  assert.equal(run.processed_count, 1);
   assert.match(worker.searches[0].q, /^from:noreply-eclass@bethlehem\.edu after:/);
   assert.doesNotMatch(worker.logs.join('\n'), /TEST_ONLY_SECRET_VALUE|PRIVATE BODY|Private Sender|Private subject/);
 });
@@ -131,10 +136,24 @@ test('duplicate is confirmed, while API and transport failures never advance the
   failedResponse.context.syncUniTrackEmails();
   assert.equal(failedResponse.stored.has('LAST_SUCCESSFUL_SYNC_EPOCH'), false);
 
+  const unauthorized = createWorker(() => response(401, '{"success":false,"status":"failed"}'));
+  unauthorized.context.syncUniTrackEmails();
+  assert.equal(unauthorized.stored.has('LAST_SUCCESSFUL_SYNC_EPOCH'), false);
+
   const failedTransport = createWorker(() => response(200, '{}'), true);
   failedTransport.context.syncUniTrackEmails();
   assert.equal(failedTransport.stored.has('LAST_SUCCESSFUL_SYNC_EPOCH'), false);
   assert.doesNotMatch(failedTransport.logs.join('\n'), /PRIVATE BODY/);
+});
+
+test('overlapping trigger run exits when the script lock is held', () => {
+  const worker = createWorker(() => response(200, '{}'), false, false);
+  worker.context.syncUniTrackEmails();
+
+  assert.equal(worker.requests.length, 0);
+  assert.equal(worker.searches.length, 0);
+  assert.equal(worker.stored.has('LAST_SUCCESSFUL_SYNC_EPOCH'), false);
+  assert.match(worker.logs.join('\n'), /already running/);
 });
 
 test('worker requires HTTPS endpoint and an explicit bounded search query', () => {

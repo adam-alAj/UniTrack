@@ -120,6 +120,19 @@ function defaultLog(stage: string) {
   console.error(JSON.stringify({ event: "unitrack_ingest_error", stage, retryable: true }));
 }
 
+async function recordFailure(
+  repository: IngestionRepository,
+  userId: string,
+  email: ReturnType<typeof InboundEmailSchema.parse>,
+  stage: string,
+) {
+  try {
+    await repository.recordFailure(userId, email, `Processing failed during ${stage}. Retry is safe.`);
+  } catch {
+    // The underlying persistence outage can also prevent the diagnostic row.
+  }
+}
+
 export async function handleIngestRequest(
   request: Request,
   dependencies: IngestDependencies,
@@ -191,6 +204,7 @@ export async function handleIngestRequest(
     courses = await repository.listCourses(dependencies.ownerUserId);
   } catch {
     logError("course_lookup");
+    await recordFailure(repository, dependencies.ownerUserId, email, "course lookup");
     return jsonResponse({ success: false, status: "failed", retryable: true }, 503);
   }
 
@@ -202,6 +216,7 @@ export async function handleIngestRequest(
     );
   } catch {
     logError("parse");
+    await recordFailure(repository, dependencies.ownerUserId, email, "email parsing");
     return jsonResponse({ success: false, status: "failed", retryable: true }, 503);
   }
 
@@ -223,6 +238,7 @@ export async function handleIngestRequest(
     );
   } catch {
     logError("database_persist");
+    await recordFailure(repository, dependencies.ownerUserId, email, "database persistence");
     return jsonResponse(
       { success: false, status: "failed", retryable: true },
       503,

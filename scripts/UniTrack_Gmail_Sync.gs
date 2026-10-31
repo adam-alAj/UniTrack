@@ -57,10 +57,20 @@ function syncUniTrackEmails() {
     return;
   }
 
+  const runStartedAt = new Date();
+  let apiUrl = '';
+  let secret = '';
+  let messagesFound = 0;
+  let requestsSent = 0;
+  let confirmed = 0;
+  let failed = 0;
+  let review = 0;
+  let allConfirmed = true;
+
   try {
     const props = PropertiesService.getScriptProperties();
-    const apiUrl = requireApiUrl_(props);
-    const secret = requireProperty_(props, 'UNITRACK_INGEST_SECRET');
+    apiUrl = requireApiUrl_(props);
+    secret = requireProperty_(props, 'UNITRACK_INGEST_SECRET');
     const customQuery = requireProperty_(props, 'GMAIL_SEARCH_QUERY');
     const batchSize = parseBoundedInt_(
       props.getProperty('BATCH_SIZE'),
@@ -85,13 +95,6 @@ function syncUniTrackEmails() {
     const searchAfter = Math.max(0, cursorToUse - UT.OVERLAP_SECONDS);
     const query = [customQuery, 'after:' + searchAfter].join(' ');
 
-    let messagesFound = 0;
-    let requestsSent = 0;
-    let confirmed = 0;
-    let failed = 0;
-    let review = 0;
-    let allConfirmed = true;
-
     let pageToken = null;
     while (true) {
       const options = {
@@ -109,7 +112,13 @@ function syncUniTrackEmails() {
         try {
           const fullMessage = Gmail.Users.Messages.get('me', messages[i].id, { format: 'full' });
           const messageEpoch = Number(fullMessage.internalDate) / 1000;
-          if (!Number.isFinite(messageEpoch) || messageEpoch <= searchAfter) continue;
+          if (!Number.isFinite(messageEpoch)) {
+            allConfirmed = false;
+            failed++;
+            Logger.log('UniTrack message processing failed: invalid_internal_date');
+            continue;
+          }
+          if (messageEpoch <= searchAfter) continue;
 
           const payload = buildMessagePayload_(fullMessage);
           const response = postToUniTrack_(apiUrl, secret, payload);
@@ -155,7 +164,31 @@ function syncUniTrackEmails() {
       cursorAdvanced: allConfirmed,
       finishedAt: new Date().toISOString()
     }));
+  } catch (err) {
+    allConfirmed = false;
+    failed++;
+    Logger.log('UniTrack sync failed: ' + safeError_(err));
   } finally {
+    if (apiUrl && secret) {
+      const finishedAt = new Date();
+      const status = failed === 0 ? 'success' : confirmed > 0 ? 'partial' : 'failed';
+      try {
+        const response = postSyncRun_(apiUrl, secret, {
+          started_at: runStartedAt.toISOString(),
+          finished_at: finishedAt.toISOString(),
+          status: status,
+          found_count: messagesFound,
+          processed_count: confirmed,
+          failed_count: failed,
+          error_summary: failed ? 'One or more messages could not be delivered.' : null
+        });
+        if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+          Logger.log('Sync history could not be recorded. HTTP=' + response.getResponseCode());
+        }
+      } catch (err) {
+        Logger.log('Sync history could not be recorded: ' + safeError_(err));
+      }
+    }
     lock.releaseLock();
   }
 }
@@ -277,6 +310,21 @@ function postToUniTrack_(apiUrl, secret, payload) {
   });
 }
 
+function postSyncRun_(apiUrl, secret, run) {
+  const syncRunUrl = apiUrl.replace(/\/api\/ingest\/email\/?$/i, '/api/ingest/sync-run');
+  return UrlFetchApp.fetch(syncRunUrl, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      Authorization: 'Bearer ' + secret,
+      'X-UniTrack-Source': 'gmail-apps-script'
+    },
+    payload: JSON.stringify(run),
+    muteHttpExceptions: true,
+    followRedirects: false
+  });
+}
+
 /** Exact response contract: 2xx, success=true, recognized status, matching ID. */
 function parseApiResponse_(response, expectedMessageId) {
   const code = response.getResponseCode();
@@ -302,16 +350,11 @@ function parseApiResponse_(response, expectedMessageId) {
 
 function requireApiUrl_(props) {
   const value = requireProperty_(props, 'UNITRACK_API_URL');
-  let url;
-  try {
-    url = new URL(value);
-  } catch (err) {
-    throw new Error('UNITRACK_API_URL must be a valid HTTPS URL.');
-  }
-  if (url.protocol !== 'https:' || url.username || url.password || !url.pathname.endsWith('/api/ingest/email')) {
+  const match = value.match(/^https:\/\/([^/?#]+)\/api\/ingest\/email\/?$/i);
+  if (!match || !/^[a-z0-9.-]+(?::\d+)?$/i.test(match[1]) || match[1].includes('..')) {
     throw new Error('UNITRACK_API_URL must be an HTTPS /api/ingest/email endpoint with no credentials.');
   }
-  return url.toString();
+  return value.replace(/\/$/, '');
 }
 
 function requireProperty_(props, key) {

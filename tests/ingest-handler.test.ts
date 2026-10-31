@@ -22,7 +22,7 @@ function validPayload() {
 }
 
 function fakeRepository(overrides: Partial<IngestionRepository> = {}) {
-  const calls = { duplicate: 0, courses: 0, persist: 0 };
+  const calls = { duplicate: 0, courses: 0, persist: 0, recordFailure: 0 };
   const repository: IngestionRepository = {
     isDuplicate: async () => {
       calls.duplicate += 1;
@@ -35,6 +35,9 @@ function fakeRepository(overrides: Partial<IngestionRepository> = {}) {
     persistAtomically: async () => {
       calls.persist += 1;
       return "needs_review";
+    },
+    recordFailure: async () => {
+      calls.recordFailure += 1;
     },
     ...overrides,
   };
@@ -121,7 +124,7 @@ test("returns duplicate without a second write", async () => {
 
 test("turns repository failures into retryable responses and only logs a stage", async () => {
   const stages: string[] = [];
-  const { repository } = fakeRepository({
+  const { repository, calls } = fakeRepository({
     persistAtomically: async () => {
       throw new Error("must not be returned or logged");
     },
@@ -133,6 +136,7 @@ test("turns repository failures into retryable responses and only logs a stage",
   assert.equal(body.retryable, true);
   assert.equal(body.error, undefined);
   assert.deepEqual(stages, ["database_persist"]);
+  assert.equal(calls.recordFailure, 1);
 });
 
 test("rejects oversized payloads before creating a repository", async () => {
