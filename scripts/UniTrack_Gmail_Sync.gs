@@ -243,6 +243,38 @@ function diagnoseUniTrack() {
   );
 }
 
+/**
+ * Diagnostic: logs the data type of each body part (no message content beyond
+ * a 40-character sample). Run once manually if decoding still fails.
+ */
+function debugBodyType() {
+  const q = PropertiesService.getScriptProperties().getProperty(
+    "GMAIL_SEARCH_QUERY",
+  );
+  const list = Gmail.Users.Messages.list("me", { q: q, maxResults: 1 });
+  if (!list.messages || !list.messages.length) {
+    Logger.log("No messages matched the query.");
+    return;
+  }
+  const msg = Gmail.Users.Messages.get("me", list.messages[0].id, {
+    format: "full",
+  });
+  (function walk(p) {
+    if (p.body && p.body.data) {
+      Logger.log(
+        p.mimeType +
+          " | isArray=" +
+          Array.isArray(p.body.data) +
+          " | typeof=" +
+          typeof p.body.data +
+          " | sample=" +
+          String(p.body.data).slice(0, 40),
+      );
+    }
+    (p.parts || []).forEach(walk);
+  })(msg.payload);
+}
+
 function buildMessagePayload_(message) {
   const messageId = message.id;
   const receivedAt = Number(message.internalDate);
@@ -286,14 +318,39 @@ function collectBodyParts_(part, found) {
   const mimeType = String(part.mimeType || "").toLowerCase();
   const data = part.body && part.body.data;
   if (data && (mimeType === "text/plain" || mimeType === "text/html")) {
-    const decoded = Utilities.newBlob(
-      Utilities.base64DecodeWebSafe(data),
-    ).getDataAsString("UTF-8");
-    found[mimeType === "text/plain" ? "plain" : "html"].push(decoded);
+    // A single undecodable part must not fail the whole message.
+    try {
+      const decoded = decodeBase64Url_(data);
+      found[mimeType === "text/plain" ? "plain" : "html"].push(decoded);
+    } catch (err) {
+      Logger.log("Body part decode failed: " + safeError_(err));
+    }
   }
   (part.parts || []).forEach(function (child) {
     collectBodyParts_(child, found);
   });
+}
+
+/**
+ * Decodes a Gmail body part. Handles:
+ *  - an array of bytes (Advanced Service may return this)
+ *  - a base64url string, with or without padding
+ */
+function decodeBase64Url_(data) {
+  if (Array.isArray(data)) {
+    return Utilities.newBlob(data).getDataAsString("UTF-8");
+  }
+
+  let s = String(data).replace(/\s+/g, "").replace(/=+$/, "");
+  while (s.length % 4 !== 0) s += "=";
+
+  let bytes;
+  try {
+    bytes = Utilities.base64DecodeWebSafe(s);
+  } catch (e1) {
+    bytes = Utilities.base64Decode(s.replace(/-/g, "+").replace(/_/g, "/"));
+  }
+  return Utilities.newBlob(bytes).getDataAsString("UTF-8");
 }
 
 function stripHtml_(html) {
@@ -410,5 +467,7 @@ function parseBoundedInt_(value, fallback, minimum, maximum) {
 }
 
 function safeError_(err) {
-  return String(err && err.name ? err.name : "Error").slice(0, 80);
+  return String(err && err.message ? err.message : err)
+    .replace(/Bearer\s+\S+/gi, "[redacted]")
+    .slice(0, 300);
 }
