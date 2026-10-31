@@ -13,7 +13,7 @@ UniTrack is a private academic workspace for university tasks and course announc
 1. Install dependencies: `npm install`.
 2. Copy `.env.example` to `.env.local`.
 3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project. Keep every server-only value out of browser code.
-4. Apply `supabase/migrations/202610310001_initial_schema.sql` to the project. With the Supabase CLI, run `supabase link --project-ref YOUR_PROJECT_REF`, then `supabase db push`.
+4. Apply both migrations to the project. With the Supabase CLI, run `supabase link --project-ref YOUR_PROJECT_REF`, then `supabase db push`.
 5. Create the initial owner account in Supabase Authentication. Public sign-up is not exposed by this app.
 6. Start the app: `npm run dev`, then open <http://localhost:3000>.
 
@@ -25,9 +25,10 @@ The login screen reports when public Supabase configuration is missing. Authenti
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Browser safe |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/publishable key; authorization is enforced by RLS | Browser safe |
-| `SUPABASE_SERVICE_ROLE_KEY` | Reserved for a future authenticated server ingestion path | Server only; not used by the browser or current app |
-| `UNITRACK_INGEST_SECRET` | Reserved for the future Apps Script ingestion endpoint | Server only; never commit it |
-| `UNITRACK_OWNER_USER_ID` | Owner UUID for a future trusted single-user ingestion worker | Server only |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only ingestion repository | Server only; never use in browser code |
+| `UNITRACK_INGEST_SECRET` | Shared bearer secret for Apps Script ingestion | Server only; never commit it |
+| `UNITRACK_OWNER_USER_ID` | Supabase auth user UUID that owns ingested records | Server only |
+| `UNITRACK_SOURCE_TIMEZONE` | IANA timezone used to convert explicitly stated local deadlines | Server only; configure before interpreting timed deadlines |
 
 Never place a service-role key or ingestion secret in a `NEXT_PUBLIC_*` variable. Apps Script secrets belong in Script Properties, not this repository.
 
@@ -39,7 +40,11 @@ Validate policy behavior in a non-production Supabase project with two test acco
 
 ## Gmail integration
 
-The source worker is documented at `Docs/UniTrack_Gmail_Sync.gs`. It requires an HTTPS ingestion endpoint, which is outside this foundation phase. Do not install or schedule the worker until the endpoint and its secrets are configured. The search query must be set only after reviewing a small, redacted sample of actual university notifications; no sender, subject, language, course, or deadline pattern is assumed here.
+The ingestion API is `POST /api/ingest/email`; its server validates a bounded payload and bearer secret, derives owner identity from server configuration, parses records, and writes them atomically through a restricted database function. The Apps Script worker is `scripts/UniTrack_Gmail_Sync.gs`; copy it and `scripts/appsscript.json` into an Apps Script project, enable the Advanced Gmail service, configure required Script Properties, authorize read-only Gmail access, and run `diagnoseUniTrack` before installing the five-minute trigger with `setupUniTrackTrigger`.
+
+User-provided screenshots show automated reminders from `noreply-eclass@bethlehem.edu`, due reminder subjects, “You have assignments due in N days” digest subjects, overdue notices, and a separate instructor-sent course project notice. A candidate query for automated notices is `from:noreply-eclass@bethlehem.edu`. It was not run against Gmail in this environment and does not cover instructor-sent mail. Portal URLs are not visible in the supplied screenshots. The parser preserves explicit date text and leaves a due timestamp null for a date without a time, missing timezone, ambiguity, or invalid date; configure the university's IANA timezone before ingestion.
+
+Email payload bodies are stored in `email_messages` to support traceability. Limit access through owner-only RLS and treat database backups/logging as private student data. The worker logs counts/status only, never message content, query, sender, or subject. Gmail read and trigger authorization must be tested in the intended Workspace account before enabling scheduled execution.
 
 ## Commands
 
@@ -48,5 +53,6 @@ The source worker is documented at `Docs/UniTrack_Gmail_Sync.gs`. It requires an
 - `npm run format:check` — Prettier check
 - `npm run build` — production build
 - `supabase db push` — apply pending local migrations to the linked project
+- `npm test` — parser, ingestion handler, and Apps Script worker unit tests
 
 The current workspace may not have the required credentials or runtime installed. See `IMPLEMENTATION_LOG.md` for the recorded validation status and blockers.

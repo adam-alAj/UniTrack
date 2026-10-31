@@ -1,0 +1,12 @@
+Subject: You have assignments due in [REDACTED_NUMBER] days
+
+Hi [REDACTED_RECIPIENT],
+
+The following assignments are due on [REDACTED_DATE].
+
+- [REDACTED_TASK_1] in course [REDACTED_COURSE_CODE] - [REDACTED_COURSE_NAME]
+  Due: [REDACTED_TIME_1]
+  Go to activity: [REDACTED_PORTAL_URL_1]
+- [REDACTED_TASK_2] in course [REDACTED_COURSE_CODE] - [REDACTED_COURSE_NAME]
+  Due: [REDACTED_TIME_2]
+  Go to activity: [REDACTED_PORTAL_URL_2]

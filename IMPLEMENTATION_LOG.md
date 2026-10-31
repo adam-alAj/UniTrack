@@ -1,138 +1,95 @@
 # UniTrack Implementation Log
 
-Scope for this run: Phases 00–03 only. Later phases are out of scope.
+Updated for Prompt 02. Scope: Phases 04–06 only, continuing the Phase 00–03 foundation. Phase 07 and later are out of scope.
 
-## Phase 00 — Repository and Requirements Inspection
+## Phase 00 — Repository and requirements inspection
 
-### Changes
-- Recorded the repository state, requirements checklist, configuration gaps, and validation constraints here.
-- Read all of `Docs/UniTrack_Project_Plan.md`, `Docs/UniTrack_Implementation_Plan.md`, and `Docs/UniTrack_Gmail_Sync.gs` completely before modifying project files.
+- Source documents reviewed completely: `Docs/UniTrack_Project_Plan.md`, `Docs/UniTrack_Implementation_Plan.md`, and `Docs/UniTrack_Gmail_Sync.gs`.
+- Inspected repository tree, Git state, app source, dependencies, environment template, and prior implementation log. Existing work was preserved.
+- Git branch: `main...origin/main`. Existing untracked `supabase/.temp/` is ignored; its content was not opened or copied.
+- Node, npm, pnpm, yarn, bun, Supabase CLI, psql, and clasp are unavailable in this environment. No configured project credentials were found.
 
-### Checklist mapped to phases
-- [x] Phase 00: inspect repository, requirements, existing changes, tools, and missing configuration.
-- [x] Phase 01: Next.js App Router, TypeScript, Tailwind, shadcn/ui foundation, shell, safe env template, and README implemented; runtime checks blocked.
-- [x] Phase 02: Supabase schema/RLS migrations, browser/server clients, protected routes, login/logout implemented; live checks blocked.
-- [ ] Phase 03: inspect real mailbox samples, derive evidence-based Gmail query, verify scheduled trigger, and record redacted patterns. Preliminary access test observed; core checks blocked.
-- [x] Explicitly excluded Phases 04–12.
+## Phase 01 — Application foundation
 
-### Commands executed
-- `Get-Content -Raw` on all three source documents; output limit required complete numbered chunk reads afterward.
-- `Get-ChildItem -Force -Recurse`
-- `git status --short --branch`
-- `rg --files` for repository instructions, package/lock files, application files, configuration, and log.
-- `node --version`, `npm --version`, `git --version`; checked `supabase`, `clasp`, and related environment variables.
+- Existing Next.js App Router, TypeScript, Tailwind, shadcn conventions, Lucide, ESLint/Prettier, responsive shell, README, and `.env.example` retained.
+- Validation: static config JSON parsing and source credential-pattern check had passed in Prompt 01. Dependency install, dev server, lint, and build remain unverified because Node/npm are unavailable; no lockfile exists.
 
-### Validation
-- [x] Source documents present and completely reviewed.
-- [x] Workspace contents inspected; existing work preserved.
-- [x] Configuration gaps recorded.
+## Phase 02 — Database and authentication foundation
 
-### Issues
-- Initial workspace contained only `Docs/` and `.brud/history/cleanup.json`; no app, package manifest, lockfile, or `AGENTS.md` was present.
-- `git status` cannot run because this is not a Git repository. Git itself is installed.
-- Node.js/npm, Supabase CLI, and clasp are not available on PATH.
-- No relevant Supabase project credentials or local Gmail/Apps Script environment variables are present.
+- `202610310001_initial_schema.sql` defines courses, email messages, tasks, announcements, sync runs, indexes, constraints, owner-only RLS policies, and owner-consistent foreign keys.
+- Static inspection found RLS enabled on all five user tables and 20 authenticated owner CRUD policies. No development seed data is used.
+- Login/logout and protected route source exists; live Auth behavior and migration application were not verified because Supabase CLI/project credentials and Node/npm are unavailable.
 
-### Decisions
-- Started the app in new application paths and preserved the existing documentation and `.brud` files.
-- Did not invent university-specific senders, subjects, courses, language, dates, links, or email patterns.
-- Continued independent implementation while recording database and Gmail integration checkpoints as blocked.
+## Phase 03 — Gmail feasibility evidence
 
-### Status
-COMPLETE
+- User-provided screenshots (used as source evidence; redacted fixtures only) show:
+  1. Automated due reminder: visible sender `noreply-eclass@bethlehem.edu`; subject shape `Due on [weekday, date, time]: [task]`; body names an assignment, course code/name, explicit due time, and “Go to activity”.
+  2. Digest: subject `You have assignments due in [N] days`; one shared calendar date and multiple course/task bullets with individual due times and activity links.
+  3. Overdue reminder: subject `Overdue: [task]`; explicit weekday/date/time and activity link.
+  4. Separate instructor notice: subject `Course Project`; sender address not visible; body states a course project is posted and gives a date-only submission deadline.
+- Observed date text is English month-name format (e.g. `[weekday], [day] [month] [year], [time] AM/PM`) and date-only (`[day] [month] [year]`). Screenshot links are labels; actual portal URLs are unavailable.
+- Candidate query for automated notices: `from:noreply-eclass@bethlehem.edu`. This was derived from visible evidence but was NOT executed against Gmail. It will not cover instructor-sent mail without an additional reviewed search strategy.
+- Live diagnostic search, scheduled trigger execution, Workspace authorization, and admin restrictions remain unverified. No trigger was installed. The prior Prompt 01 browser session showed an earlier one-time read but not a scheduled trigger; it does not establish this worker's feasibility.
 
-## Phase 01 — Initialize Next.js Application
+## Phase 04 — Email parsing engine
 
-### Changes
-- Added a Next.js 16 App Router + TypeScript foundation, responsive shell, Tailwind CSS v4, shadcn/ui configuration and Button component, Lucide icons, ESLint flat config, and Prettier config.
-- Added safe `.env.example`, README setup/security notes, and package scripts/dependencies.
-- Dashboard uses empty states; no sample university records are fabricated.
-
-### Commands executed
-- Checked current official Next.js App Router/installation/ESLint, shadcn Next.js, and Supabase SSR client documentation.
-- Parsed `package.json`, `tsconfig.json`, `components.json`, and `.prettierrc.json` with PowerShell `ConvertFrom-Json` — PASS.
-- Scanned project source for token-shaped secret values — PASS (no matches; safe env placeholders are documented separately).
-- `npm install` — could not start because `npm` is unavailable.
-- `npm run dev` — could not start because `npm` is unavailable.
-- `npm run lint` — could not start because `npm` is unavailable.
-- `npm run build` — could not start because `npm` is unavailable.
+### Implemented
+- `lib/email/` normalizes HTML/plain text, classifies messages, matches configured courses, extracts tasks/deadlines/links, handles digest items, and returns review reasons rather than inventing missing details.
+- Date parsing accepts explicit English month-name dates. A due timestamp remains null if time/timezone is missing, the date is ambiguous, or the local time is invalid/ambiguous (DST). Original date wording is retained. `UNITRACK_SOURCE_TIMEZONE` must be configured with the institution's IANA zone.
+- Redacted screenshot-derived fixtures and parser unit tests added. Fixtures contain no private names, content, or portal URLs.
+- `zod` and `tsx` dependencies/scripts added. Course matching uses only configured user courses; it never creates a course from an email.
 
 ### Validation
-- [ ] Dependencies install — BLOCKED (npm unavailable).
-- [ ] Development server starts — BLOCKED (Node/npm unavailable).
-- [ ] Lint passes — BLOCKED (Node/npm unavailable).
-- [ ] Production build passes — BLOCKED (Node/npm unavailable).
-- [x] Static credential-pattern scan of project source found no literal credential values; `.env.example` contains placeholders only. Git history/source-control check unavailable because `.git` is absent.
+- Unit tests are authored but not run: npm/Node are unavailable. Parser behavior is not marked validated.
 
-### Issues
-- Node/npm are missing and the dependency install, dev-server, lint, and build checks cannot run.
-- No lockfile could be generated without npm.
+## Phase 05 — Secure ingestion API and atomic database write
 
-### Decisions
-- Used Next.js 16 `proxy.ts` for Supabase session refresh/protection and the Supabase SSR browser/server clients.
-- Implementation is present, but Phase 01 is not complete until required runtime checks pass.
+### Implemented
+- `POST /api/ingest/email` validates method, bearer secret using constant-time byte comparison, JSON content type, 256 KiB bounded body, strict payload schema, HTTPS Gmail URL, and rejects unknown fields such as caller-supplied `user_id`.
+- Owner UUID comes only from server configuration. The server-only Supabase admin module is isolated with `server-only`; service-role key is not used in browser code.
+- Duplicate messages return before parsing/writing. The SQL function atomically records the email and its multiple task/announcement children and uses `(user_id, gmail_message_id)` as idempotency boundary.
+- New migration `202610310002_email_ingestion.sql` adds review metadata and original due text, drops the old one-task-per-source-email index to support digest emails, and creates a pinned-search-path `SECURITY DEFINER` RPC with execution revoked from public/anon/authenticated and granted to `service_role` only.
+- Handler unit tests cover auth, method/content type, schema/ownership rejection, review response, duplicate, sanitized/retryable DB error, and oversized body.
 
-### Status
-BLOCKED (implementation drafted; validation toolchain unavailable)
-
-## Phase 02 — Supabase Database and Authentication
-
-### Changes
-- Added `supabase/migrations/202610310001_initial_schema.sql` with all five tables, constraints, indexes, message idempotency, owner-consistent foreign keys, RLS, authenticated owner-only policies, and task update timestamps.
-- Added browser/server Supabase clients, fail-closed route protection, password login, and logout.
-- Added Supabase CLI project configuration and README migration/account setup.
-- No seed data or service-role database client was added.
-
-### Commands executed
-- Static migration policy check: each table has RLS enabled and four owner policies (select/insert/update/delete).
-- Static SQL review confirmed the migration contains composite owner FKs and `(user_id, gmail_message_id)` uniqueness.
-- Checked Supabase CLI availability; command not found. No project credentials are present.
+### Security review performed
+- Static source review confirmed bearer auth precedes repository use; no caller-controlled owner ID; strict URL host validation; request size cap; no request/body/email data in handler or worker logs; generic retryable database errors; server-only service-role import; RLS remains enabled.
+- Static migration review confirmed pinned empty `search_path`, explicit RPC execute grants, user ownership values, and transactional inserts. Live migration/RLS verification was not possible.
 
 ### Validation
-- [ ] Migrations apply cleanly — BLOCKED (Supabase CLI/project credentials unavailable).
-- [ ] RLS and cross-user isolation verified against a database — BLOCKED. Static SQL check confirms five RLS-enabled tables and 20 owner-only policies.
-- [ ] Login/logout works — BLOCKED (Node/npm runtime and Supabase credentials unavailable).
-- [x] No code imports/exposes a service-role value to browser modules. Its variable appears only as a server-only placeholder in `.env.example` and README.
+- Handler unit tests authored but not run (npm/Node unavailable).
+- Migration apply, live RLS checks, and concurrent duplicate test not run (Supabase CLI/project unavailable).
 
-### Issues
-- Live database, RLS, and authentication validation cannot run without Supabase CLI/project credentials and an available Node/npm runtime.
+## Phase 06 — Gmail Apps Script worker
 
-### Decisions
-- Browser writes will use the authenticated client and RLS. The service-role key and ingestion secret are reserved for a future server-only ingestion integration.
-- SQL/application behavior is unverified until the migration is applied and exercised in Supabase.
+### Implemented
+- `scripts/UniTrack_Gmail_Sync.gs` reads paginated messages via Advanced Gmail API, extracts plain text, posts to the ingestion contract, uses a lock and overlapping cursor, and only advances after exact successful status and matching message ID. It does not modify Gmail.
+- `scripts/appsscript.json` enables Gmail API v1 and scopes `gmail.readonly`, `script.external_request`, and `script.scriptapp`. This intentionally replaces GmailApp's broader mailbox scope with least-privilege read access; deployer must enable the Advanced Gmail service and authorize it in the target Workspace account.
+- Worker requires explicit `GMAIL_SEARCH_QUERY`, HTTPS endpoint and Script Properties; bounded diagnostics log counts/configuration presence only. It does not log query, body, sender, subject, or secret.
+- Script tests cover response contract, cursor behavior, privacy-safe logs, endpoint/query configuration, and manifest scopes.
 
-### Status
-BLOCKED (migration/auth implementation drafted; live validation unavailable)
+### Validation and blockers
+- Apps Script unit tests are authored but not run (Node unavailable).
+- Apps Script project deployment, live search diagnostic, authorization, time-driven trigger, UrlFetch access, and Workspace policy were not available to verify. Gmail query and trigger feasibility remain BLOCKED, not PASS.
+- No private email content or secret was committed. Supabase temp metadata is ignored. Git status and diff whitespace checks were available; runtime secret scanners/build checks were not.
 
-## Phase 03 — Gmail Access and Search Feasibility
+## Commands and results for Prompt 02
 
-### Changes
-- Inspected the currently open Apps Script project and visible execution history. A prior one-time Gmail read check completed successfully, confirming a Gmail read path had been authorized in that project.
-- The visible sample was a generic Google Drive notification, not a university coursework notice. No private message content was copied into the repository.
-- The pre-existing one-time diagnostic writes sender and subject metadata to its Apps Script execution log; avoid rerunning it on private mail until that diagnostic is redacted.
-- Attempted read-only inspection of trigger status; the Apps Script browser window became unavailable during refresh/navigation.
+- `Get-Content`/`rg` source review of parser, handler, repository, migration, worker, fixtures, tests, and route — completed.
+- `git status --short --branch` — `## main...origin/main` plus intended implementation changes; `supabase/.temp/` absent because ignored.
+- `git diff --check` — PASS (only Git line-ending conversion warnings).
+- PowerShell JSON parse for `package.json`, `tsconfig.json`, and `scripts/appsscript.json` — PASS.
+- Static RLS policy count — PASS: all five tables enable RLS and have four owner CRUD policies each (20 total).
+- Limited credential-pattern scan excluding generated/ignored metadata — PASS, no token-shaped values found. This is not a replacement for a dedicated secret scanner.
+- `npm test` — NOT RUN: `npm` is not available on PATH.
+- `npm install`, `npm run dev`, `npm run lint`, `npm run build` — NOT RUN: `npm` is not available on PATH.
+- `supabase db push` and live RLS/Auth checks — NOT RUN: Supabase CLI and project credentials unavailable.
+- Gmail diagnostic and trigger verification — NOT RUN: no connected Apps Script runtime/project authorization available.
 
-### Commands executed
-- Read-only Apps Script project/execution history inspection through the existing authorized browser session.
-- Read-only trigger-page navigation attempt; automation reported the window minimized and then rejected state refresh after user input was detected.
-- No Gmail diagnostic search, message-body read, trigger creation, permission prompt, or Apps Script project edit was performed.
+## Phase status and next action
 
-### Validation
-- [x] Preliminary one-time Gmail read access observed in a completed Apps Script execution.
-- [ ] Real university notification samples inspected — BLOCKED (no confirmed university notification identified).
-- [ ] Evidence-based Gmail query established — BLOCKED (no verified sender/subject sample).
-- [ ] Time-driven trigger verified — BLOCKED (trigger UI and scheduled execution evidence unavailable).
-- [ ] Three redacted representative patterns documented — BLOCKED (would require inventing samples without source messages).
-
-### Issues
-- University notification sender addresses, subjects, courses/codes, languages/date formats, portal URL patterns, and representative samples remain unknown.
-- The existing one-time diagnostic logs sender/subject metadata in Apps Script execution history. It was not modified because the current Apps Script editor became unavailable during the read-only inspection attempt.
-- Scheduled trigger authorization, required scopes, UrlFetch configuration, and Workspace administrator restrictions remain unknown.
-- Installing a time-driven trigger adds persistent scheduled execution; action-time confirmation is required before installation. No trigger was installed.
-
-### Decisions
-- Did not run a broad mailbox search or document speculative patterns. The supplied script's `newer_than:7d` is an example only, not a verified university-specific query.
-- Treat the successful manual read as preliminary evidence only; Gmail integration and scheduled trigger feasibility are not fully verified.
-
-### Status
-BLOCKED (mailbox sample and trigger verification required)
+- Phases 00–03: implementation/documentation present; Phase 03 live Gmail checks remain blocked.
+- Phase 04: implementation drafted; unit test validation blocked.
+- Phase 05: implementation drafted; unit/database validation blocked.
+- Phase 06: worker implemented; worker tests and live Gmail/trigger validation blocked.
+- Overall Prompt 02: **PARTIAL / BLOCKED on environment validation**, not complete.
+- Exact next project phase after this prompt: **Phase 07**.

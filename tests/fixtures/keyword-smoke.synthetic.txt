@@ -1,0 +1,6 @@
+Synthetic classification probes (not observed university notification templates):
+
+Quiz subject: Quiz: [REDACTED]
+Exam subject: Exam: [REDACTED]
+Announcement subject: Announcement: [REDACTED]
+Unknown subject: [REDACTED]
